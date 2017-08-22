@@ -42,5 +42,4 @@ class ChannelManager{
         return chanList;
     }
 }
-
 module.exports = ChannelManager;
