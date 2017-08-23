@@ -28,7 +28,7 @@ class Room extends commando.Command{
     }
 
     async run(message, args){
-        console.log("room");
+        message.reply('check');
     }
 }
 module.exports = Room;
