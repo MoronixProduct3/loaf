@@ -25,4 +25,5 @@ client.registry.registerCommandsIn(__dirname + "/commands");
 // Creating a Channel Manager
 client.channelManager = new ChannelManager(client);
 
-client.login(config.botToken)
+
+client.login(config.botToken);
