@@ -61,7 +61,40 @@ class ChannelManager{
         await this.consolidateAll();
 
         // Setup event handlers
+        this.client.on('channelDelete',(channel)=>{
+            if (scaledHasChannel(channel.id)){
+                this.consolidateScaling;
+            }
+            else if (this.tempChannels.includes(channel.id)){
+                this.consolidateTemp;
+            }
+        });
 
+        this.client.on('voiceStateUpdate',(oldMember, newMember)=>{
+            var oldChannel = oldMember.voiceChannelID;
+            var newChannel = newMember.voiceChannelID;
+
+            if (this.tempChannels.includes(oldChannel)){
+                this.consolidateTemp();
+            }
+            else if (scaledHasChannel(oldChannel) || scaledHasChannel(newChannel)){
+                this.consolidateScaling();
+            }
+        });
+    }
+
+    /**
+     * Retruns true if the specified channel is a scaled channel
+     * @param {Snowflake} channelID - The Id of the channel to find
+     */
+    scaledHasChannel(channelID){
+        if (this.scaledChannels.has(channelID))
+            return true;
+        this.scaledChannels.forEach((exp)=>{
+            if (exp.includes(channelID))
+                return true;
+        });
+        return false;
     }
 
     /**
@@ -150,6 +183,23 @@ class ChannelManager{
         if (doneVectors.some((modified)=> {return modified;})){
             await this.saveScalingDB();
         }
+    }
+
+    /**
+     * Saves the scaledChannels to the database
+     */
+    async saveScalingDB(){
+        var vectorList = [];
+        var promises = [];
+
+        this.scaledChannels.forEach((exp,key)=>{
+            vectorList.push(key);
+            promises.push(this.client.settings.set('exp_'+key, exp));
+        });
+
+        promises.push(this.client.settings.set('vector_channels', vectorList));
+
+        await Promise.all(promises);
     }
 
     /**
