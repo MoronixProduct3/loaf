@@ -1,4 +1,4 @@
-const commando = require('discord.js-commando');
+const discord = require('discord.js');
 
 const TEMP_JOIN_MS = 30000; // Time to join a channel before it closes; 30 sec 
 const channelNameRegex = /(.*?)(\d*$)/
@@ -23,6 +23,8 @@ class ChannelManager{
         
         // The initializing method to execute once the client is settled
         this.client.on('ready', ()=> this.init());
+        if (Date.now() - this.client.readyAt < 3000)
+            this.init();
 
         /**
          * The ids of the temporary channels created with the bot
@@ -44,7 +46,6 @@ class ChannelManager{
 
         // Load databases
         this.tempChannels = await this.loadChannels('temp_channels');
-
         var vectorChannels = await this.loadChannels('vector_channels');
         var expansionChannels = [];
         vectorChannels.forEach((vector, index)=>{
@@ -62,7 +63,7 @@ class ChannelManager{
 
         // Setup event handlers
         this.client.on('channelDelete',(channel)=>{
-            if (scaledHasChannel(channel.id)){
+            if (this.scaledHasChannel(channel.id)){
                 this.consolidateScaling;
             }
             else if (this.tempChannels.includes(channel.id)){
@@ -77,10 +78,14 @@ class ChannelManager{
             if (this.tempChannels.includes(oldChannel)){
                 this.consolidateTemp();
             }
-            else if (scaledHasChannel(oldChannel) || scaledHasChannel(newChannel)){
+            else if (this.scaledHasChannel(oldChannel) || this.scaledHasChannel(newChannel)){
                 this.consolidateScaling();
             }
         });
+
+        console.log('finished initialization');
+        console.log('Temp Channels: ');
+        console.log(this.tempChannels);
     }
 
     /**
@@ -104,16 +109,9 @@ class ChannelManager{
     async loadChannels (key){
         // query the database
         var chanList = await this.client.settings.get(key,[]);
-        var verifiedChannels = [];
-
-        // verify the loaded object is an array
-        if (!Array.isArray(chanList)){
-            chanList = [];
-            this.client.settings.remove(key);
-        }
-
+        
         // returning the list of channels
-        return verifiedChannels;
+        return chanList;
     }
 
     /**
@@ -152,12 +150,12 @@ class ChannelManager{
             }
 
             // Checking if the room was not newly created
-            var time = commando.SnowflakeUtil.deconstruct(commando.SnowflakeUtil.generate()).timestamp;
+            var time = discord.SnowflakeUtil.deconstruct(discord.SnowflakeUtil.generate()).timestamp;
             if (time - channel.createdTimestamp > TEMP_JOIN_MS){
                  
                 // Checking if room is empty
                 if (channel.members.size < 1){
-                    await this.terminateTemp(channel, false); // Close the discord channel
+                    await this.terminateTemp(channel.id, false); // Close the discord channel
                     change = true;
                 }
             }
@@ -320,8 +318,8 @@ class ChannelManager{
         if (writeToDB === undefined) writeToDB = true;
 
         // Remove the channel from the list
-        var index = tempChannels.indexOf(channel);
-        review.splice(index, 1);
+        var index = this.tempChannels.indexOf(channel);
+        this.tempChannels.splice(index, 1);
 
         // Destroy the channel through discord
         this.client.channels.get(channel).delete('Temporary channel has expired');
@@ -340,6 +338,9 @@ class ChannelManager{
      */
     async newTempChannel(guild, name, requester, capacity){
         var newChannel = await guild.createChannel(name, 'voice');
+
+        // registring new channel
+        this.tempChannels.push(newChannel.id);
 
         await Promise.all([
         // Giving permissions to the bot
@@ -365,7 +366,17 @@ class ChannelManager{
         if (capacity)
             newChannel.setUserLimit(capacity);
         }]);
-        
+
+        // saving changes to the database
+        await this.client.settings.set('temp_channels',this.tempChannels);
+
+        // Setting up auto deletion after time-out
+        setTimeout(()=>{
+            if (newChannel.members.size < 1){
+                this.terminateTemp(newChannel.id, true);
+            }
+        }, TEMP_JOIN_MS);
+
         return newChannel;
     }
 }

@@ -14,16 +14,15 @@ var client = new commando.Client({
 // Setting up the database
 client.setProvider(
 	sqlite.open(__dirname + '/settings.sqlite3').then(db => new commando.SQLiteProvider(db))
-).catch(console.error);
+).then(()=>{
+    // Creating a Channel Manager
+    client.channelManager = new ChannelManager(client);
+}).catch(console.error);
 
 // Registring bot commands
 client.registry.registerDefaults();
 client.registry.registerGroup('roomopen','Custom');
 //client.registry.registerGroup('roomscale','RoomScale');
 client.registry.registerCommandsIn(__dirname + "/commands");
-
-// Creating a Channel Manager
-client.channelManager = new ChannelManager(client);
-
 
 client.login(config.botToken);
