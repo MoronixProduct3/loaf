@@ -27,8 +27,50 @@ class Room extends commando.Command{
         });
     }
 
+    isNormalInteger(str) {
+        var n = Math.floor(Number(str));
+        return String(n) === str && n >= 0;
+    }
+
     async run(message, args){
-        message.reply('check');
+        var name = message.author.username+"'s Channel";
+        var capacity = 0;
+        var nameSet = false;
+
+        args.forEach((argument)=>{
+
+            // If the argument is a switch option
+            if (argument.charAt(0) == '-'){
+            }
+            // If the argument is the capacity
+            else if (this.isNormalInteger(argument)){
+                var cap = parseInt(argument);
+                if (cap >= 100){
+                    cap = 0;
+                    message.reply('The maximum room capacity is 99. The room was set to unlimited.');
+                }
+                capacity = cap;
+            }
+            // Room name
+            else if (!nameSet){
+                name = argument;
+                nameSet = true;
+            }
+            // Could not resolve argument
+            else{
+                message.reply('"'+arg+'" is not a valid argument');
+                return;
+            }
+        });
+
+        this.client.channelManager.newTempChannel(
+            message.guild,
+            name, 
+            message.author, 
+            capacity)
+        .then((newChannel)=>{
+            message.reply(newChannel.name+' was created');
+        });
     }
 }
 module.exports = Room;

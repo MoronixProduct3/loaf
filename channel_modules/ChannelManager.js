@@ -330,5 +330,43 @@ class ChannelManager{
         if (writeToDB)
             await this.client.settings.set('temp_channels',this.tempChannels);
     }
+
+    /**
+     * This creates a new temporary channel
+     * @param {GuildChannel} guild - The channel in which to create the channel
+     * @param {string} name - The name of the new guild channel
+     * @param {Snowflake} requester - The id of the person creating the channel
+     * @param {number} capacity - Maximum number of members allowed in the channel
+     */
+    async newTempChannel(guild, name, requester, capacity){
+        var newChannel = await guild.createChannel(name, 'voice');
+
+        await Promise.all([
+        // Giving permissions to the bot
+        newChannel.overwritePermissions(this.client.user,{
+            'CREATE_INSTANT_INVITE': true,
+            'MANAGE_CHANNELS':true,
+            'CONNECT':true,
+            'SPEAK':true,
+            'MUTE_MEMBERS':true,
+            'MOVE_MEMBERS':true
+        }),
+
+        // Giving permissions to the requester
+        newChannel.overwritePermissions(requester,{
+            'CREATE_INSTANT_INVITE': true,
+            'MANAGE_CHANNELS':true,
+            'CONNECT':true,
+            'SPEAK':true,
+            'MUTE_MEMBERS':true,
+            'MANAGE_ROLES_OR_PERMISSIONS':true,
+            'MOVE_MEMBERS':true
+        }),()=>{
+        if (capacity)
+            newChannel.setUserLimit(capacity);
+        }]);
+        
+        return newChannel;
+    }
 }
 module.exports = ChannelManager;
