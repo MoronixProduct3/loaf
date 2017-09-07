@@ -1,7 +1,7 @@
 const discord = require('discord.js');
 
 const TEMP_JOIN_MS = 30000; // Time to join a channel before it closes; 30 sec 
-const channelNameRegex = /(.*?)(\d*$)/
+const channelNameRegex = /(.*?)(\d*$)/;
 
 /** The object managing the voice channels requested */
 class ChannelManager{
@@ -330,42 +330,19 @@ class ChannelManager{
     }
 
     /**
-     * This creates a new temporary channel
-     * @param {GuildChannel} guild - The channel in which to create the channel
-     * @param {string} name - The name of the new guild channel
-     * @param {Snowflake} requester - The id of the person creating the channel
-     * @param {number} capacity - Maximum number of members allowed in the channel
+     * Adds a newly created channel to the temporary channels
+     * @param {VoiceChannel} newChannel - The channel to add to the db
      */
-    async newTempChannel(guild, name, requester, capacity){
-        var newChannel = await guild.createChannel(name, 'voice');
+    async newTempChannel(newChannel){
+
+        // Checking the channel is not already in a database
+        if (this.tempChannels.has(newChannel.id))
+            return Promise.reject(new Error('Channel is already a temporary channel'));
+        if (this.scaledHasChannel(newChannel.id))
+            return Promise.reject(new Error('Channel is a scaled channel'));
 
         // registring new channel
         this.tempChannels.push(newChannel.id);
-
-        await Promise.all([
-        // Giving permissions to the bot
-        newChannel.overwritePermissions(this.client.user,{
-            'CREATE_INSTANT_INVITE': true,
-            'MANAGE_CHANNELS':true,
-            'CONNECT':true,
-            'SPEAK':true,
-            'MUTE_MEMBERS':true,
-            'MOVE_MEMBERS':true
-        }),
-
-        // Giving permissions to the requester
-        newChannel.overwritePermissions(requester,{
-            'CREATE_INSTANT_INVITE': true,
-            'MANAGE_CHANNELS':true,
-            'CONNECT':true,
-            'SPEAK':true,
-            'MUTE_MEMBERS':true,
-            'MANAGE_ROLES_OR_PERMISSIONS':true,
-            'MOVE_MEMBERS':true
-        }),()=>{
-        if (capacity)
-            newChannel.setUserLimit(capacity);
-        }]);
 
         // saving changes to the database
         await this.client.settings.set('temp_channels',this.tempChannels);
@@ -375,7 +352,7 @@ class ChannelManager{
             if (newChannel.members.size < 1){
                 this.terminateTemp(newChannel.id, true);
             }
-        }, TEMP_JOIN_MS);
+        }, newChannel.guild.settings.get('temp_timeout', TEMP_JOIN_MS));
 
         return newChannel;
     }

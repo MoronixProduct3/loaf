@@ -27,11 +27,6 @@ class Room extends commando.Command{
         });
     }
 
-    isNormalInteger(str) {
-        var n = Math.floor(Number(str));
-        return String(n) === str && n >= 0;
-    }
-
     async run(message, args){
         var name = message.author.username+"'s Channel";
         var capacity = 0;
