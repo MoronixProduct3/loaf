@@ -84,8 +84,6 @@ class ChannelManager{
         });
 
         console.log('finished initialization');
-        console.log('Temp Channels: ');
-        console.log(this.tempChannels);
     }
 
     /**
@@ -149,15 +147,11 @@ class ChannelManager{
                 continue;
             }
 
-            // Checking if the room was not newly created
-            var time = discord.SnowflakeUtil.deconstruct(discord.SnowflakeUtil.generate()).timestamp;
-            if (time - channel.createdTimestamp > TEMP_JOIN_MS){
-                 
-                // Checking if room is empty
-                if (channel.members.size < 1){
-                    await this.terminateTemp(channel.id, false); // Close the discord channel
-                    change = true;
-                }
+     
+            // Checking if room is empty
+            if (channel.members.size < 1){
+                await this.terminateTemp(channel.id, false); // Close the discord channel
+                change = true;
             }
         }
 
@@ -336,7 +330,7 @@ class ChannelManager{
     async newTempChannel(newChannel){
 
         // Checking the channel is not already in a database
-        if (this.tempChannels.has(newChannel.id))
+        if (this.tempChannels.includes(newChannel.id))
             return Promise.reject(new Error('Channel is already a temporary channel'));
         if (this.scaledHasChannel(newChannel.id))
             return Promise.reject(new Error('Channel is a scaled channel'));
@@ -352,7 +346,7 @@ class ChannelManager{
             if (newChannel.members.size < 1){
                 this.terminateTemp(newChannel.id, true);
             }
-        }, newChannel.guild.settings.get('temp_timeout', TEMP_JOIN_MS));
+        }, await newChannel.guild.settings.get('temp_timeout', TEMP_JOIN_MS));
 
         return newChannel;
     }

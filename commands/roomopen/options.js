@@ -20,15 +20,21 @@ function parse(args){
                 if (argument.match(/c/i))
                     options.closed = true;
             }
+            else{
+                options.error = 
+                    'The switch option provided is invalid\n'+
+                    '`'+argument+'` is not a valid option';
+                break;
+            }
         }
 
         // If the argument is the capacity
-        else if (this.isNormalInteger(argument)){
+        else if (isNormalInteger(argument)){
             // Check if the capacity was already set
             if(options.capacity !== undefined){
                 options.error = 
-                    'An integer number sets the capacity of the room. Only one capacity is allowed.\n'
-                    'You entered `${options.capacity}` but also `${argument}`';
+                    'An integer number sets the capacity of the room. Only one capacity is allowed.\n'+
+                    'You entered `'+options.capacity+'` but also `'+argument+'`';
                 break;
             }
 
@@ -43,19 +49,19 @@ function parse(args){
 
         // Room name
         else if (options.name === undefined){
-            name = argument;
+            options.name = argument;
         }
 
         // Could not resolve argument
         else{
             if (options.name){
                 options.error =
-                    'You have entered more than one name for the channel\n'
+                    'You have entered more than one name for the channel\n'+
                     'To set a name with more than one word use \'single quotes\'';
                 break;
             }
 
-            throw new Error('unexpected argument: "@{argument}"');
+            throw new Error('unexpected argument: "'+argument+'"');
             break;
         }
     }
@@ -78,8 +84,6 @@ function isNormalInteger(str) {
  */
 async function load(guild){
     var options = {};
-
-
 
     return options;
 }
@@ -113,4 +117,18 @@ module.exports.apply = async function(options, channel){
     // Position
     if (options.position !== undefined)
         promises.push(channel.setPosition(options.position));
+
+
+    // Permissions
+    var everyone = channel.guild.roles.find(element => element.name === '@everyone');
+
+    // Push to talk
+    if (options.push2talk)
+        promises.push(channel.overwritePermissions(everyone,{USE_VAD: false}));
+
+    // Closed channel
+    if (options.closed)
+        promises.push(channel.overwritePermissions(everyone,{CONNECT: false}));
+
+    await Promise.all(promises);
 }

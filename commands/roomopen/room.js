@@ -1,4 +1,5 @@
 const commando = require('discord.js-commando');
+const options = require('./options');
 
 class Room extends commando.Command{
     constructor(client){
@@ -28,44 +29,23 @@ class Room extends commando.Command{
     }
 
     async run(message, args){
-        var name = message.author.username+"'s Channel";
-        var capacity = 0;
-        var nameSet = false;
+        var opt = await options.getAll(message.guild, args);
+        
+        if (opt.error !== undefined){
+            message.reply(opt.error);
+            return;
+        }
 
-        args.forEach((argument)=>{
+        if (opt.name === undefined || opt.name === "")
+            opt.name = message.author.username+"'s channel";
 
-            // If the argument is a switch option
-            if (argument.charAt(0) == '-'){
-            }
-            // If the argument is the capacity
-            else if (this.isNormalInteger(argument)){
-                var cap = parseInt(argument);
-                if (cap >= 100){
-                    cap = 0;
-                    message.reply('The maximum room capacity is 99. The room was set to unlimited.');
-                }
-                capacity = cap;
-            }
-            // Room name
-            else if (!nameSet){
-                name = argument;
-                nameSet = true;
-            }
-            // Could not resolve argument
-            else{
-                message.reply('"'+arg+'" is not a valid argument');
-                return;
-            }
-        });
+        var newChannel = await message.guild.createChannel(opt.name, 'voice');
 
-        this.client.channelManager.newTempChannel(
-            message.guild,
-            name, 
-            message.author, 
-            capacity)
-        .then((newChannel)=>{
-            message.reply(newChannel.name+' was created');
-        });
+        options.apply(opt, newChannel);
+
+        await this.client.channelManager.newTempChannel(newChannel);
+            
+        message.reply(newChannel.name+' was created');
     }
 }
 module.exports = Room;
