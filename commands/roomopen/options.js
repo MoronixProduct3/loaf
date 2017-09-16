@@ -3,18 +3,18 @@
  * It parses them one by one and set
  * @param {String[]} args - The arguments to parse
  */
-module.exports.parse = function(args){
+function parse(args){
     var options = {};
 
     for (argument of args){
 
         // If the argument is a switch option
         if (argument.charAt(0) === '-'){
-            if (argument.match(/^--push2talk$/i))
+            if (argument.trim().match(/^--push2talk$/i))
                 options.push2talk = true;
-            else if (argument.match(/^--closed$/i))
+            else if (argument.trim().match(/^--closed$/i))
                 options.closed = true;
-            else if (argument.match(/^-[pc]+$/i)){
+            else if (argument.trim().match(/^-[pc]+$/i)){
                 if (argument.match(/p/i))
                     options.push2talk = true;
                 if (argument.match(/c/i))
@@ -70,4 +70,47 @@ module.exports.parse = function(args){
 function isNormalInteger(str) {
     var n = Math.floor(Number(str));
     return String(n) === str && n >= 0;
+}
+
+/**
+ * This function loads options that are defined in the guild settings
+ * @param {Guild} guild - The guild to load the options from
+ */
+async function load(guild){
+    var options = {};
+
+
+
+    return options;
+}
+
+/**
+ * This returns the complete list of options after having read the database
+ * and parsed all the input arguments
+ * @param {Guild} guild - The guild to load the options from
+ * @param {String[]} args - The arguments to parse
+ */
+module.exports.getAll = async function(guild, args){
+    return Object.assign(parse(args), await load(guild));
+}
+
+/**
+ * Applies a series of settings to a voice channel
+ * @param {Object} options - The object containing the options of the channel
+ * @param {VoiceChannel} channel - The channel to be modified
+ */
+module.exports.apply = async function(options, channel){
+    var promises = [];
+
+    // Name
+    if (options.name !== undefined)
+        promises.push(channel.setName(options.name));
+
+    // Capacity
+    if (options.capacity !== undefined);
+        promises.push(channel.setUserLimit(options.capacity));
+
+    // Position
+    if (options.position !== undefined)
+        promises.push(channel.setPosition(options.position));
 }
