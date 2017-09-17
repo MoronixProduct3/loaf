@@ -39,6 +39,7 @@ class ChannelManager{
         this.scaledChannels = new Map();
     }
 
+
     /**
      * This function loads the id arrays on bot startup
      */
@@ -78,7 +79,7 @@ class ChannelManager{
             if (this.tempChannels.includes(oldChannel)){
                 this.consolidateTemp();
             }
-            else if (this.scaledHasChannel(oldChannel) || this.scaledHasChannel(newChannel)){
+            if (this.scaledHasChannel(oldChannel) || this.scaledHasChannel(newChannel)){
                 this.consolidateScaling();
             }
         });
@@ -86,19 +87,24 @@ class ChannelManager{
         console.log('finished initialization');
     }
 
+
     /**
      * Retruns true if the specified channel is a scaled channel
-     * @param {Snowflake} channelID - The Id of the channel to find
+     * @param {ChannelResolvable} channel - The Id of the channel to find
      */
-    scaledHasChannel(channelID){
-        if (this.scaledChannels.has(channelID))
-            return true;
-        this.scaledChannels.forEach((exp)=>{
-            if (exp.includes(channelID))
+    scaledHasChannel(channel){
+        if (!channel)
+            return false;
+        if (typeof channel !== 'string') 
+            channel = channel.id;
+
+        for(let [key,exp] of this.scaledChannels){
+            if (key === channel || exp.includes(channel))
                 return true;
-        });
+        };
         return false;
     }
+
 
     /**
      * Loads channels from the database. This function will also delete any missing channel.
@@ -112,6 +118,7 @@ class ChannelManager{
         return chanList;
     }
 
+
     /**
      * This function verifies the channels in memory exist and are still used
      */
@@ -121,6 +128,7 @@ class ChannelManager{
             this.consolidateScaling()
         ]);
     }
+
 
     /**
      * This function all the temp channels are still in good shape
@@ -159,6 +167,7 @@ class ChannelManager{
             await this.client.settings.set('temp_channels',this.tempChannels);
     }
 
+
     /**
      * This function consolidates scaling rooms
      * Any discrepency is corrected and the database updated
@@ -177,6 +186,7 @@ class ChannelManager{
         }
     }
 
+
     /**
      * Saves the scaledChannels to the database
      */
@@ -194,6 +204,7 @@ class ChannelManager{
         await Promise.all(promises);
     }
 
+
     /**
      * This function consolidates one scaling room
      * Any discrepency is corrected
@@ -203,9 +214,11 @@ class ChannelManager{
     async consolidateVector(vector){
         var curChan = this.client.channels;
 
-        // Verify the base room still exists
-        if (!curChan.has(vector)){
-            await removeVector(vector);
+        // Verify the base room still exists and is a voice channel
+        if (!curChan.has(vector) 
+            || curChan.get(vector).type !== 'voice')
+        {
+            await this.removeVector(vector);
             return true;
         }
 
@@ -253,28 +266,39 @@ class ChannelManager{
         return expChanged;
     }
 
+
     /**
      * Will create a new room in the Scalable room
      * @param {Snowflake} vectorID - The channel to expand
      */
     async expandVector(vectorID){
         var expChannels = this.scaledChannels.get(vectorID);
-        var lastChannelName;       
+        var lastChannelName;
+        var lastPosition; 
 
         // Check if there is already expanions
-        if (expChannels.length > 0)
+        if (expChannels.length > 0){
             lastChannelName = this.client.channels.get(expChannels[expChannels.length-1]).name;
+            lastPosition = this.client.channels.get(expChannels[expChannels.length-1]).calculatedPosition;
+        }
         // Otherwise base name on vector
-        else
+        else{
             lastChannelName = this.client.channels.get(vectorID).name;
-
+            lastPosition = this.client.channels.get(vectorID).calculatedPosition;
+        }
         // Create new channel
-        await this.client.channels.get(vectorID).clone({
-            name: this.nextChannelName(lastChannelName),
-            withPermissions: true,
-            reason: 'Auto-expansion'
-        });
+        var nChan = await this.client.channels.get(vectorID).clone(
+            ChannelManager.nextChannelName(lastChannelName),
+            true,
+            false,
+            'Auto-expansion'
+        );
+        nChan.setPosition(lastPosition + 1);
+        expChannels.push(nChan.id);
+
+        this.scaledChannels.set(vectorID, expChannels);
     }
+
 
     /**
      * Creates a new name for a scalable channel
@@ -282,9 +306,11 @@ class ChannelManager{
      */
     static nextChannelName(baseName){
         var parseResult  = baseName.trim().match(channelNameRegex);
-        
+        if (parseResult[2] === '')
+            return parseResult[1]+ ' 2';
         return parseResult[1]+ (parseInt(parseResult[2])+1);
     }
+
 
     /**
      * This deletes one of the scaled rooms.
@@ -302,6 +328,7 @@ class ChannelManager{
         // Removing the vector from memory
         this.scaledChannels.delete(vectorId);
     }
+
 
     /**
      * This function will remove a channel from the list of temporary channels
@@ -322,6 +349,7 @@ class ChannelManager{
         if (writeToDB)
             await this.client.settings.set('temp_channels',this.tempChannels);
     }
+
 
     /**
      * Adds a newly created channel to the temporary channels
@@ -349,6 +377,47 @@ class ChannelManager{
         }, await newChannel.guild.settings.get('temp_timeout', TEMP_JOIN_MS));
 
         return newChannel;
+    }
+
+
+    /**
+     * Lists all the scaled channels in a discord guil
+     * @param {Guild} guild - The guild in which to list the scaled channels
+     */
+    listScaledIn(guild){
+        var list = [];
+        guild.channels.forEach((value, key)=>{
+            if (this.scaledChannels.has(key))
+                list.push(value);
+        });
+        return list;
+    }
+
+    /**
+     * Asserts a channel can be toggled and either enables or disables scaling
+     * @param {VoiceChannel} channel - The channel onto which the state should be toggled
+     */
+    async toggleScaled(channel){
+        
+        // disable scaling if already active
+        if (this.scaledChannels.has(channel.id))
+        {
+            this.removeVector(channel.id);
+            await this.saveScalingDB();
+            return channel.name + ' is no longer a scaling channel';
+        }
+
+        if (this.tempChannels.includes(channel.id))
+            return Promise.reject(channel.name + ' is a temporary channel. Temporary channels cannot be scaled.');
+
+        if (this.scaledHasChannel(channel.id))
+            return Promise.reject(channel.name + ' is an extension channel. A scaled channel expansion cannot be scaled.');
+
+        // enable scaling
+        this.scaledChannels.set(channel.id, []);
+        await this.saveScalingDB();
+        await this.consolidateScaling();
+        return channel.name + ' is now a scaled channel';
     }
 }
 module.exports = ChannelManager;

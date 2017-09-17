@@ -85,6 +85,8 @@ function isNormalInteger(str) {
 async function load(guild){
     var options = {};
 
+    options.position = guild.settings.get('temp_position', 1);
+
     return options;
 }
 

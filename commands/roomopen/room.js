@@ -23,8 +23,7 @@ class Room extends commando.Command{
                         '\nThe example provided creates a voice channel named "squad"\n'+
                         'with capacity=4 only joinable by invited members\n',
             examples:['channel squad 4 -c'],
-            argsType:'multiple',
-            argsCount: 12
+            argsType:'multiple'
         });
     }
 

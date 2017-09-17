@@ -21,8 +21,8 @@ client.setProvider(
 
 // Registring bot commands
 client.registry.registerDefaults();
-client.registry.registerGroup('roomopen','Custom');
-//client.registry.registerGroup('roomscale','RoomScale');
+client.registry.registerGroup('roomopen','Temporary Channels');
+client.registry.registerGroup('roomscale','Scaled Channels');
 client.registry.registerCommandsIn(__dirname + "/commands");
 
 client.login(config.botToken);
