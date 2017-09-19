@@ -85,7 +85,19 @@ function isNormalInteger(str) {
 async function load(guild){
     var options = {};
 
-    options.position = guild.settings.get('temp_position', 1);
+    options.position = await guild.settings.get('temp_position', 1);
+
+    options.authorPerm = await guild.settings.get('author_permissions',null);
+    if (options.authorPerm === null)
+        options.authorPerm = {
+            'CREATE_INSTANT_INVITE': true,
+            'MANAGE_CHANNELS':true,
+            'CONNECT':true,
+            'SPEAK':true,
+            'MUTE_MEMBERS':true,
+            'MANAGE_ROLES_OR_PERMISSIONS':true,
+            'MOVE_MEMBERS':true
+        };
 
     return options;
 }
@@ -105,32 +117,32 @@ module.exports.getAll = async function(guild, args){
  * @param {Object} options - The object containing the options of the channel
  * @param {VoiceChannel} channel - The channel to be modified
  */
-module.exports.apply = async function(options, channel){
+module.exports.apply = async function(options, channel, author){
     var promises = [];
-
-    // Name
-    if (options.name !== undefined)
-        promises.push(channel.setName(options.name));
-
-    // Capacity
-    if (options.capacity !== undefined);
-        promises.push(channel.setUserLimit(options.capacity));
-
-    // Position
-    if (options.position !== undefined)
-        promises.push(channel.setPosition(options.position));
-
 
     // Permissions
     var everyone = channel.guild.roles.find(element => element.name === '@everyone');
 
     // Push to talk
     if (options.push2talk)
-        promises.push(channel.overwritePermissions(everyone,{USE_VAD: false}));
+        promises.push(await channel.overwritePermissions(everyone,{USE_VAD: false}));
 
     // Closed channel
     if (options.closed)
-        promises.push(channel.overwritePermissions(everyone,{CONNECT: false}));
+        promises.push(await channel.overwritePermissions(everyone,{CONNECT: false}));
+
+    // Applying the channel host permissions
+    if (options.authorPerm)
+        promises.push(await channel.overwritePermissions(author, options.authorPerm));
+
+    // Capacity
+    if (options.capacity !== undefined){
+        promises.push(await channel.setUserLimit(options.capacity));
+    }
+    
+    // Position
+    if (options.position !== undefined)
+        promises.push(await channel.setPosition(options.position));
 
     await Promise.all(promises);
 }

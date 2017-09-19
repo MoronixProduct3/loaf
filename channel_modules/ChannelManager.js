@@ -371,7 +371,10 @@ class ChannelManager{
 
         // Setting up auto deletion after time-out
         setTimeout(()=>{
-            if (newChannel.members.size < 1){
+            var chan = this.client.channels.get(newChannel.id);
+            if (chan === undefined || chan === null)
+                return;
+            if (chan.members.size < 1){
                 this.terminateTemp(newChannel.id, true);
             }
         }, await newChannel.guild.settings.get('temp_timeout', TEMP_JOIN_MS));

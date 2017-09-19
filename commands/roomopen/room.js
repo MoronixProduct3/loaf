@@ -38,9 +38,13 @@ class Room extends commando.Command{
         if (opt.name === undefined || opt.name === "")
             opt.name = message.author.username+"'s channel";
 
-        var newChannel = await message.guild.createChannel(opt.name, 'voice');
+        var newChannel = await message.guild.createChannel(
+            opt.name, 
+            'voice',
+            [],
+            'New temp channel');
 
-        options.apply(opt, newChannel);
+        options.apply(opt, newChannel, message.author);
 
         await this.client.channelManager.newTempChannel(newChannel);
             
