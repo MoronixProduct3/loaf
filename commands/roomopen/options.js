@@ -1,3 +1,5 @@
+const Permissions = require('../../node_modules/discord.js/src/util/Permissions');
+
 /**
  * This function returns an object containing all the options
  * It parses them one by one and set
@@ -69,6 +71,7 @@ function parse(args){
     return options;
 }
 
+
 /**
  * Determines if an argument is an positive integer
  * @param {String} str - The string to identify
@@ -77,6 +80,7 @@ function isNormalInteger(str) {
     var n = Math.floor(Number(str));
     return String(n) === str && n >= 0;
 }
+
 
 /**
  * This function loads options that are defined in the guild settings
@@ -102,6 +106,7 @@ async function load(guild){
     return options;
 }
 
+
 /**
  * This returns the complete list of options after having read the database
  * and parsed all the input arguments
@@ -112,6 +117,7 @@ module.exports.getAll = async function(guild, args){
     return Object.assign(parse(args), await load(guild));
 }
 
+
 /**
  * Applies a series of settings to a voice channel
  * @param {Object} options - The object containing the options of the channel
@@ -119,21 +125,6 @@ module.exports.getAll = async function(guild, args){
  */
 module.exports.apply = async function(options, channel, author){
     var promises = [];
-
-    // Permissions
-    var everyone = channel.guild.roles.find(element => element.name === '@everyone');
-
-    // Push to talk
-    if (options.push2talk)
-        promises.push(await channel.overwritePermissions(everyone,{USE_VAD: false}));
-
-    // Closed channel
-    if (options.closed)
-        promises.push(await channel.overwritePermissions(everyone,{CONNECT: false}));
-
-    // Applying the channel host permissions
-    if (options.authorPerm)
-        promises.push(await channel.overwritePermissions(author, options.authorPerm));
 
     // Capacity
     if (options.capacity !== undefined){
@@ -145,4 +136,58 @@ module.exports.apply = async function(options, channel, author){
         promises.push(await channel.setPosition(options.position));
 
     await Promise.all(promises);
+}
+
+
+/**
+ * Compute the permissions to apply to a new channel
+ */
+module.exports.computePermissions = function(options, author, guild){
+    const permOverwrites = [];
+
+    // everyone permissions
+    if (options.push2talk || options.closed){
+        const everyone = guild.roles.find(element => element.name === '@everyone');
+
+        let deniedPerms = 0;
+
+        if (options.push2talk)
+            deniedPerms |= Permissions.FLAGS['USE_VAD'];
+        if (options.closed)
+            deniedPerms |= Permissions.FLAGS['CONNECT'];
+
+        permOverwrites.push({
+            id: everyone.id,
+            type: 'role',
+            allow: 0,
+            deny: deniedPerms
+        });
+    }
+
+    // Applying the channel host permissions
+    if (options.authorPerm){
+        let payload = {
+            id: author.id,
+            type: 'member',
+            allow: 0,
+            deny: 0,
+        };
+
+        for (const perm in options.authorPerm) {
+            if (options.authorPerm[perm] === true) {
+              payload.allow |= Permissions.FLAGS[perm] || 0;
+              payload.deny &= ~(Permissions.FLAGS[perm] || 0);
+            } else if (options.authorPerm[perm] === false) {
+              payload.allow &= ~(Permissions.FLAGS[perm] || 0);
+              payload.deny |= Permissions.FLAGS[perm] || 0;
+            } else if (options.authorPerm[perm] === null) {
+              payload.allow &= ~(Permissions.FLAGS[perm] || 0);
+              payload.deny &= ~(Permissions.FLAGS[perm] || 0);
+            }
+        }
+
+        permOverwrites.push(payload);
+    }
+
+    return permOverwrites;
 }

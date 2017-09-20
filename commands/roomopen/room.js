@@ -41,7 +41,7 @@ class Room extends commando.Command{
         var newChannel = await message.guild.createChannel(
             opt.name, 
             'voice',
-            [],
+            options.computePermissions(opt,message.author,message.guild),
             'New temp channel');
 
         options.apply(opt, newChannel, message.author);
