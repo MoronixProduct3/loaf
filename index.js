@@ -4,7 +4,7 @@ const fs = require('fs');
 const ChannelManager = require('./channel_modules/ChannelManager');
 
 // Loading config file
-var config = JSON.parse(fs.readFileSync('config.json','utf8'));
+var config = JSON.parse(fs.readFileSync(__dirname + '/config.json','utf8'));
 
 // Creating bot instance
 var client = new commando.Client({
