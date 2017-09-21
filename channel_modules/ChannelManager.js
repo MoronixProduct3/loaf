@@ -293,8 +293,8 @@ class ChannelManager{
             false,
             'Auto-expansion'
         );
-        await nChan.setUserLimit(this.client.channels.get(vectorID).userLimit);
-        nChan.setPosition(lastPosition + 1);
+        await nChan.setPosition(lastPosition + 1);
+        nChan.setUserLimit(this.client.channels.get(vectorID).userLimit);
         expChannels.push(nChan.id);
 
         this.scaledChannels.set(vectorID, expChannels);
