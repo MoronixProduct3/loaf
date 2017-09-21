@@ -164,7 +164,7 @@ module.exports.computePermissions = function(options, author, guild){
         });
     }
 
-    // Applying the channel host permissions
+    // the channel host permissions
     if (options.authorPerm){
         let payload = {
             id: author.id,

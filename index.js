@@ -15,9 +15,9 @@ var client = new commando.Client({
 client.setProvider(
 	sqlite.open(__dirname + '/settings.sqlite3').then(db => new commando.SQLiteProvider(db))
 ).then(()=>{
-    // Creating a Channel Manager
+// Creating a Channel Manager
     client.channelManager = new ChannelManager(client);
-}).catch(console.error);
+});
 
 // Registring bot commands
 client.registry.registerDefaults();
