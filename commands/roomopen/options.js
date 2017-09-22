@@ -1,4 +1,5 @@
-const Permissions = require('../../node_modules/discord.js/src/util/Permissions');
+const discord = require('discord.js');
+const Perm = discord.Permissions;
 
 /**
  * This function returns an object containing all the options
@@ -94,14 +95,19 @@ async function load(guild){
     options.authorPerm = await guild.settings.get('author_permissions',null);
     if (options.authorPerm === null)
         options.authorPerm = {
-            'CREATE_INSTANT_INVITE': true,
-            'MANAGE_CHANNELS':true,
-            'CONNECT':true,
-            'SPEAK':true,
-            'MUTE_MEMBERS':true,
-            'MANAGE_ROLES_OR_PERMISSIONS':true,
-            'MOVE_MEMBERS':true
+            allow : [
+                'CREATE_INSTANT_INVITE',
+                'MANAGE_CHANNELS',
+                'CONNECT',
+                'SPEAK',
+                'MUTE_MEMBERS',
+                'MANAGE_ROLES',
+                'MOVE_MEMBERS'
+            ],
+            deny: []
         };
+
+    options.parent = await guild.settings.get('temp_channel_category', null);
 
     return options;
 }
@@ -123,19 +129,15 @@ module.exports.getAll = async function(guild, args){
  * @param {Object} options - The object containing the options of the channel
  * @param {VoiceChannel} channel - The channel to be modified
  */
-module.exports.apply = async function(options, channel, author){
-    var promises = [];
-
-    // Capacity
-    if (options.capacity !== undefined){
-        promises.push(await channel.setUserLimit(options.capacity));
-    }
+module.exports.apply = async function(options, channel){
     
-    // Position
-    if (options.position !== undefined)
-        promises.push(await channel.setPosition(options.position));
-
-    await Promise.all(promises);
+    await channel.edit({
+        position: options.position,
+        userLimit: options.capacity,
+        parentID: options.parent
+    });
+    if (channel.parentID){}
+        setTimeout(()=>channel.setPosition(options.position),1000);
 }
 
 
@@ -149,17 +151,16 @@ module.exports.computePermissions = function(options, author, guild){
     if (options.push2talk || options.closed){
         const everyone = guild.roles.find(element => element.name === '@everyone');
 
-        let deniedPerms = 0;
+        let deniedPerms = [];
 
         if (options.push2talk)
-            deniedPerms |= Permissions.FLAGS['USE_VAD'];
+            deniedPerms.push('USE_VAD');
         if (options.closed)
-            deniedPerms |= Permissions.FLAGS['CONNECT'];
+            deniedPerms.push('CONNECT');
 
         permOverwrites.push({
             id: everyone.id,
-            type: 'role',
-            allow: 0,
+            allow: [],
             deny: deniedPerms
         });
     }
@@ -168,23 +169,9 @@ module.exports.computePermissions = function(options, author, guild){
     if (options.authorPerm){
         let payload = {
             id: author.id,
-            type: 'member',
-            allow: 0,
-            deny: 0,
+            allow: options.authorPerm.allow,
+            deny: options.authorPerm.deny
         };
-
-        for (const perm in options.authorPerm) {
-            if (options.authorPerm[perm] === true) {
-              payload.allow |= Permissions.FLAGS[perm] || 0;
-              payload.deny &= ~(Permissions.FLAGS[perm] || 0);
-            } else if (options.authorPerm[perm] === false) {
-              payload.allow &= ~(Permissions.FLAGS[perm] || 0);
-              payload.deny |= Permissions.FLAGS[perm] || 0;
-            } else if (options.authorPerm[perm] === null) {
-              payload.allow &= ~(Permissions.FLAGS[perm] || 0);
-              payload.deny &= ~(Permissions.FLAGS[perm] || 0);
-            }
-        }
 
         permOverwrites.push(payload);
     }

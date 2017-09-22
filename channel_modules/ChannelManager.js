@@ -274,27 +274,31 @@ class ChannelManager{
     async expandVector(vectorID){
         var expChannels = this.scaledChannels.get(vectorID);
         var lastChannelName;
-        var lastPosition; 
+        var lastPosition;
+        let last;
 
         // Check if there is already expanions
-        if (expChannels.length > 0){
-            lastChannelName = this.client.channels.get(expChannels[expChannels.length-1]).name;
-            lastPosition = this.client.channels.get(expChannels[expChannels.length-1]).calculatedPosition;
-        }
+        if (expChannels.length > 0)
+            last = this.client.channels.get(expChannels[expChannels.length-1]);
         // Otherwise base name on vector
-        else{
-            lastChannelName = this.client.channels.get(vectorID).name;
-            lastPosition = this.client.channels.get(vectorID).calculatedPosition;
-        }
+        else
+            last = this.client.channels.get(vectorID);
         // Create new channel
-        var nChan = await this.client.channels.get(vectorID).clone(
-            ChannelManager.nextChannelName(lastChannelName),
-            true,
-            false,
-            'Auto-expansion'
-        );
-        await nChan.setUserLimit(this.client.channels.get(vectorID).userLimit);
-        nChan.setPosition(lastPosition + 1);
+        var nChan = await this.client.channels.get(vectorID).clone({
+            name: ChannelManager.nextChannelName(last.name),
+            withPermissions: true,
+            reason:'Auto-expansion'
+        });
+        nChan.edit({
+            userLimit: last.userLimit,
+            parentID: last.parentID,
+            lockPermissions: last.permissionsLocked
+        }).then(c=>{
+            c.setPosition(last.position +1);
+            if (c.parentID)
+                setTimeout(()=>c.setPosition(last.position +1),1000);
+        });
+        
         expChannels.push(nChan.id);
 
         this.scaledChannels.set(vectorID, expChannels);

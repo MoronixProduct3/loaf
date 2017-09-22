@@ -1,6 +1,6 @@
 {
   "name": "loaf",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "the voice channel discord bot",
   "main": "index.js",
   "scripts": {
@@ -17,8 +17,8 @@
   },
   "homepage": "https://github.com/MoronixProduct3/loaf#readme",
   "dependencies": {
-    "discord.js": "^11.1.0",
-    "discord.js-commando": "^0.9.0",
+    "discord.js": "git+https://github.com/hydrabolt/discord.js.git",
+    "discord.js-commando": "git+https://github.com/Gawdl3y/discord.js-commando.git",
     "sqlite": "^2.8.0"
   },
   "devDependencies": {}
