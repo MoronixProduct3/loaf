@@ -1,0 +1,13 @@
+[Unit]
+Description=Loaf Box the voice channel helper
+After=network.service
+Documentation=https://github.com/MoronixProduct3/loaf
+
+[Service]
+User=root
+WorkingDirectory=/srv/loaf
+ExecStart=/usr/bin/node /srv/loaf/ --harmony
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
