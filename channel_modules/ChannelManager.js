@@ -273,8 +273,6 @@ class ChannelManager{
      */
     async expandVector(vectorID){
         var expChannels = this.scaledChannels.get(vectorID);
-        var lastChannelName;
-        var lastPosition;
         let last;
 
         // Check if there is already expanions
@@ -292,11 +290,9 @@ class ChannelManager{
         nChan.edit({
             userLimit: last.userLimit,
             parentID: last.parentID,
-            lockPermissions: last.permissionsLocked
+            lockPermissions: last.permissionsLocked,
         }).then(c=>{
-            c.setPosition(last.position +1);
-            if (c.parentID)
-                setTimeout(()=>c.setPosition(last.position +1),1000);
+            setTimeout(()=>c.setPosition(last.position +1),1000);
         });
         
         expChannels.push(nChan.id);

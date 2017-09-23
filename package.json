@@ -1,6 +1,6 @@
 {
   "name": "loaf",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "the voice channel discord bot",
   "main": "index.js",
   "scripts": {
