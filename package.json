@@ -21,5 +21,7 @@
     "discord.js-commando": "git+https://github.com/Gawdl3y/discord.js-commando.git",
     "sqlite": "^2.8.0"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "nodemon": "^1.12.1"
+  }
 }
