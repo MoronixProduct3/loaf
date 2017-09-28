@@ -1,7 +1,10 @@
-#special stuff for bots
+#special stuff for this bot
 package-lock.json
 config.json
 settings.sqlite3
+
+# VS Code debug
+.vscode
 
 # Logs
 logs
