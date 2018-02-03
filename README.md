@@ -33,6 +33,18 @@ Aliases : **room**, **customchannel**
 
 Syntax: `channel [Channel name] [capacity] [--push2talk] [--closed]` 
 
+### temp_category
+This command sets the category in wich the temporary channels are created.
+There can only be one category. All the temp channels created using the `channel` command will be in the specified category.
+This will not move any of the temp channels created before.
+If no argument is provided, this command will print the current category.
+If the argument provided is `_NONE`, no category will be assigned to the new temp channels.
+This command can only be used in a server
+
+Alias : **tcat**
+
+Syntax: `temp_category [ Category_Name | Category_ID | "_NONE" ]` 
+
 ### scale
 This function will automatically create new rooms. The channels get cloned making sure there is always atleast one empty channel.
 If no argument is provided, this command will list all the scaled channels
