@@ -1,3 +1,5 @@
+# __Waring: This project is deprecated and is need of a rework. No support available__
+
 # Loaf
 Discord bot to create and manage voice rooms
 
